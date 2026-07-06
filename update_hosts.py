@@ -3,7 +3,7 @@ import re
 
 # HaGeZi's NSFW/Porn light list (change URL if you prefer normal or multi)
 URL = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/nsfw-onlydomains.txt"
-OUTPUT_FILE = "hosts_nsfw.txt"
+OUTPUT_FILE = "hosts.txt"
 TARGET_IP = "0.0.0.0"
 DOMAINS_PER_LINE = 9
 
