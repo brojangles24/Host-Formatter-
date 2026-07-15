@@ -86,8 +86,8 @@ def generate_hosts():
                             # Split string into domain segment and rewrite segment
                             left_side, right_side = line.split("$dnsrewrite=")
                             
-                            # Safely clean the source domain
-                            clean_domain = left_side.replace("||", "").split("^")[0].strip()
+                            # Safely clean the source domain (Replaced "||" with "|" to catch single pipes)
+                            clean_domain = left_side.replace("|", "").split("^")[0].strip()
                             if not clean_domain:
                                 continue
                             
