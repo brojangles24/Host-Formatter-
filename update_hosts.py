@@ -3,16 +3,17 @@ import socket
 
 # 1. Core Blocklist Sources (Target: 0.0.0.0)
 BLOCKLIST_URLS = [
-    "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/nsfw-onlydomains.txt",
+    "https://raw.githubusercontent.com/brojangles24/BlocklistAggregate/refs/heads/main/mobile-blocklist.txt"
+    #"https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/nsfw-onlydomains.txt",
     #"https://raw.githubusercontent.com/sjhgvr/oisd/refs/heads/main/abp_nsfw.txt",
-    "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nosafesearch.txt",
-    "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/social.txt",
+    #"https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nosafesearch.txt",
+    #"https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/social.txt",
 ]
 
 # 2. Upstream AdGuard SafeSearch Source Feeds
 SAFESEARCH_URLS = [
     "https://adguardteam.github.io/HostlistsRegistry/assets/engines_safe_search.txt",
-    "https://adguardteam.github.io/HostlistsRegistry/assets/youtube_safe_search.txt"
+    #"https://adguardteam.github.io/HostlistsRegistry/assets/youtube_safe_search.txt"
 ]
 
 OUTPUT_FILE = "hosts.txt"
@@ -29,12 +30,39 @@ def generate_hosts():
                 content = response.read().decode('utf-8')
                 for line in content.splitlines():
                     line = line.strip()
-                    if not line or line.startswith("#") or line.startswith("!"):
+                    
+                    # Skip empty lines, comments, whitelists (@@), and regex (/)
+                    if not line or line.startswith(("#", "!", "@@", "/")):
                         continue
-                    clean = line.replace("127.0.0.1", "").replace("0.0.0.0", "")
-                    clean = clean.replace("||", "").replace("^", "").replace("*.", "").strip()
-                    if clean:
+                        
+                    # Skip cosmetic adblock rules (HTML element hiding)
+                    if "##" in line or "#?" in line:
+                        continue
+
+                    # Handle standard 'hosts' format (0.0.0.0 domain.com)
+                    if line.startswith("0.0.0.0 "):
+                        line = line.replace("0.0.0.0 ", "", 1)
+                    elif line.startswith("127.0.0.1 "):
+                        line = line.replace("127.0.0.1 ", "", 1)
+
+                    # Handle Adblock syntax
+                    if line.startswith("||"):
+                        line = line[2:] # Strip leading ||
+                    
+                    if "^" in line:
+                        # Split at ^ and keep the left side to discard modifiers (e.g., ^$third-party)
+                        line = line.split("^")[0] 
+                        
+                    # Strip leading wildcard markers just in case
+                    if line.startswith("*."):
+                        line = line[2:]
+
+                    clean = line.strip()
+                    
+                    # Final validation to ensure it's a valid string with no spaces
+                    if clean and " " not in clean:
                         blocked_domains.add(clean)
+                        
         except Exception as e:
             print(f"Error fetching blocklist: {e}")
 
@@ -58,8 +86,8 @@ def generate_hosts():
                             # Split string into domain segment and rewrite segment
                             left_side, right_side = line.split("$dnsrewrite=")
                             
-                            # Clean the source domain (removes AdGuard's leading | and trailing ^)
-                            clean_domain = left_side.replace("|", "").replace("^", "").strip()
+                            # Safely clean the source domain
+                            clean_domain = left_side.replace("||", "").split("^")[0].strip()
                             if not clean_domain:
                                 continue
                             
